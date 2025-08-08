@@ -154,14 +154,14 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const gradientColors = ["#667eea", "#764ba2"];
+  const gradientColors = ["#0f0f0f", "#000"];
   const bottomColor = gradientColors[gradientColors.length - 1];
 
   useEffect(() => {
-    if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync(bottomColor);
-    }
-  }, []);
+  if (Platform.OS === "android") {
+    SystemUI.setBackgroundColorAsync("#000000");
+  }
+}, []);
 
   const handleAuth = async () => {
     if (!email || !password || (!isSignIn && (!username || !confirmPassword))) {
@@ -215,6 +215,7 @@ export default function Auth() {
       Alert.alert("Error", error.message || "Something went wrong.");
     } finally {
       setLoading(false);
+      router.push('(tabs)/announcements')
     }
   };
 

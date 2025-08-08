@@ -1,10 +1,12 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {StyleSheet} from "react-native"
+import { SafeAreaProvider,SafeAreaView } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
       <Stack
         screenOptions={{
@@ -20,6 +22,13 @@ export default function RootLayout() {
         {/* Main App with Tab Navigation */}
         <Stack.Screen name="(tabs)" />
       </Stack>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  }
+})

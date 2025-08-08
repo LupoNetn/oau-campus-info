@@ -78,6 +78,8 @@ function OnboardingScreen() {
     router.push("/auth");
   };
 
+  router.push('(tabs)/announcements')
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar

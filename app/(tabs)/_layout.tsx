@@ -2,22 +2,35 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as SystemUI from "expo-system-ui";
+import { useEffect } from "react";
 
 export default function TabLayout() {
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      // Set Android system navigation and status bar color
+      SystemUI.setBackgroundColorAsync("#0d1117");
+    }
+  }, []);
+
   return (
     <>
-      <StatusBar style="light" backgroundColor="#1DA1F2" />
+      {/* Status bar (top system bar) */}
+      <StatusBar style="light" backgroundColor="#0d1117" translucent={false} />
+
       <Tabs
         screenOptions={{
           // Icon colors
-          tabBarActiveTintColor: "#1DA1F2",
-          tabBarInactiveTintColor: "#AAB8C2",
+          tabBarActiveTintColor: "#2f81f7",     // vibrant blue
+          tabBarInactiveTintColor: "#8b949e",   // muted gray
 
-          // Twitter-style tab bar
+          // Header (if shown)
+          headerShown: false,
+
+          // Dark tab bar styling (GitHub/X style)
           tabBarStyle: {
-            backgroundColor: "#FFFFFF",
-            borderTopColor: "#E1E8ED",
-            borderTopWidth: 1,
+            backgroundColor: "#0d1117",
+            borderTopColor: "#161b22",
             height: Platform.OS === "ios" ? 80 : 65,
             paddingBottom: Platform.OS === "ios" ? 25 : 10,
             paddingTop: 5,
@@ -28,23 +41,23 @@ export default function TabLayout() {
             elevation: 5,
           },
 
-          // Hide tab labels (Twitter style)
+          // No tab labels (clean look)
           tabBarShowLabel: false,
 
-          // Header appearance
+          // Optional header styles (if headerShown: true later)
           headerStyle: {
-            backgroundColor: "#FFFFFF",
-            borderBottomColor: "#E1E8ED",
+            backgroundColor: "#0d1117",
+            borderBottomColor: "#161b22",
             borderBottomWidth: 1,
             elevation: 0,
             shadowOpacity: 0,
           },
           headerTitleAlign: "center",
-          headerTintColor: "#14171A",
+          headerTintColor: "#f0f6fc",
           headerTitleStyle: {
             fontWeight: "bold",
             fontSize: 18,
-            color: "#14171A",
+            color: "#f0f6fc",
           },
 
           tabBarIconStyle: {
@@ -52,36 +65,24 @@ export default function TabLayout() {
           },
         }}
       >
-        <Tabs.Screen
-          name="dashboard"
-          options={{
-            title: "Dashboard",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="grid-outline" size={26} color={color} />
-            ),
-            headerTitle: "OAU Campus Hub",
-          }}
-        />
-
+       
         <Tabs.Screen
           name="announcements"
           options={{
             title: "Announcements",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="notifications-outline" size={26} color={color} />
+              <Ionicons name="flame-outline" size={26} color={color} />
             ),
-            headerTitle: "Announcements",
           }}
         />
 
-        <Tabs.Screen
-          name="buzz"
+         <Tabs.Screen
+          name="dashboard"
           options={{
-            title: "Buzz",
+            title: "Dashboard",
             tabBarIcon: ({ color }) => (
-              <Ionicons name="flame-outline" size={26} color={color} />
+              <Ionicons name="grid-outline" size={26} color={color} />
             ),
-            headerShown: false, // immersive feel for Twitter-like feed
           }}
         />
 
@@ -92,7 +93,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => (
               <Ionicons name="person-circle-outline" size={26} color={color} />
             ),
-            headerTitle: "Profile",
           }}
         />
       </Tabs>

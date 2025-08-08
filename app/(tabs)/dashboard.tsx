@@ -17,7 +17,7 @@ const importantAnnouncements = [
   {
     id: 1,
     title: "🚨 Emergency: Campus WiFi Maintenance",
-    body: "Scheduled maintenance will affect all campus WiFi networks today from 2-4 PM. Please plan accordingly.",
+    body: "Scheduled maintenance will affect all campus WiFi networks today from 2–4 PM.",
     time: "2 hours ago",
     priority: "high",
     department: "IT Services",
@@ -25,7 +25,7 @@ const importantAnnouncements = [
   {
     id: 2,
     title: "🎓 Graduation Ceremony Update",
-    body: "Important information about the upcoming graduation ceremony. All graduating students must attend the briefing.",
+    body: "All graduating students must attend the briefing. Check the portal for times.",
     time: "4 hours ago",
     priority: "high",
     department: "Student Affairs",
@@ -33,25 +33,48 @@ const importantAnnouncements = [
   {
     id: 3,
     title: "📚 Library Extended Hours",
-    body: "The main library will be open until 2 AM during exam period starting next week.",
+    body: "Main library open till 2 AM during exams next week.",
     time: "1 day ago",
     priority: "medium",
     department: "Library Services",
   },
-];
-
-const quickFeatures = [
-  { id: 1, title: "Academic Calendar", icon: "calendar", color: "#1DA1F2", description: "View important dates" },
-  { id: 2, title: "Campus Map", icon: "map", color: "#17BF63", description: "Navigate campus" },
-  { id: 3, title: "Student Portal", icon: "school", color: "#794BC4", description: "Access your account" },
-  { id: 4, title: "Emergency Contacts", icon: "call", color: "#E0245E", description: "Important numbers" },
+  {
+    id: 4,
+    title: "🚌 Shuttle Route Changes",
+    body: "New pickup points for night shuttle services around hostel area.",
+    time: "3 days ago",
+    priority: "medium",
+    department: "Transport Unit",
+  },
+  {
+    id: 5,
+    title: "💡 Electrical Maintenance",
+    body: "Power supply to be briefly interrupted in FST building during repairs.",
+    time: "6 hours ago",
+    priority: "low",
+    department: "Facilities Management",
+  },
 ];
 
 const trendingTopics = [
-  { id: 1, topic: "#OAUExamSeason", posts: "2.3K posts" },
-  { id: 2, topic: "#CampusLife", posts: "1.8K posts" },
-  { id: 3, topic: "#OAUPride", posts: "1.2K posts" },
-  { id: 4, topic: "#StudyGroup", posts: "890 posts" },
+  { id: 1, tag: "#OAUHackathon", posts: 137 },
+  { id: 2, tag: "#FuelSubsidy", posts: 208 },
+  { id: 3, tag: "#LibraryAfterDark", posts: 81 },
+  { id: 4, tag: "#TechWeek2025", posts: 190 },
+  { id: 5, tag: "#FinalYearVibes", posts: 122 },
+];
+
+const quickFeatures = [
+  { id: 1, title: "Calendar", icon: "calendar", color: "#1DA1F2" },
+  { id: 2, title: "Map", icon: "map", color: "#17BF63" },
+  { id: 3, title: "Portal", icon: "school", color: "#794BC4" },
+  { id: 4, title: "Hotlines", icon: "call", color: "#E0245E" },
+];
+
+const faculties = [
+  "Science", "Technology", "Law", "Administration", "Arts",
+  "Social Sciences", "Education", "Health Sciences", "Pharmacy",
+  "Agriculture", "Environmental Design"
 ];
 
 export default function DashboardTab() {
@@ -64,84 +87,92 @@ export default function DashboardTab() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
-        return "#E0245E";
-      case "medium":
-        return "#FAD202";
-      case "low":
-        return "#17BF63";
-      default:
-        return "#657786";
+      case "high": return "#E0245E";
+      case "medium": return "#FAD202";
+      case "low": return "#17BF63";
+      default: return "#657786";
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
-        {/* Welcome Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Welcome back 👋</Text>
-          <Text style={styles.headerSubtitle}>Here’s what’s happening on campus</Text>
+        {/* Welcome */}
+        <View style={styles.welcomeHeader}>
+          <Text style={styles.welcomeTitle}>Welcome back 👋</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Explore the latest updates on campus
+          </Text>
         </View>
 
-        {/* Important Updates */}
+        {/* Faculty Filters */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.facultyScroll}>
+          {faculties.map((faculty, index) => (
+            <TouchableOpacity key={index} style={styles.facultyBtn}>
+              <Text style={styles.facultyText}>{faculty}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Quick Access */}
+        <View style={styles.quickAccessContainer}>
+          {quickFeatures.map((feature) => (
+            <TouchableOpacity key={feature.id} style={styles.quickAccessItem}>
+              <Ionicons name={feature.icon} size={20} color={feature.color} />
+              <Text style={styles.quickAccessLabel}>{feature.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Important Announcements */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="alert-circle-outline" size={20} color="#E0245E" />
+            <Ionicons name="alert-circle" size={20} color="#E0245E" />
             <Text style={styles.sectionTitle}>Important Updates</Text>
           </View>
-          {importantAnnouncements.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.dot, { backgroundColor: getPriorityColor(item.priority) }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardMeta}>{item.department}</Text>
+          {importantAnnouncements.map((announcement) => (
+            <View key={announcement.id} style={styles.announcementCard}>
+              <View style={styles.announcementHeader}>
+                <View
+                  style={[
+                    styles.priorityDot,
+                    { backgroundColor: getPriorityColor(announcement.priority) },
+                  ]}
+                />
+                <View style={styles.announcementMeta}>
+                  <Text style={styles.announcementTitle}>{announcement.title}</Text>
+                  <Text style={styles.announcementDepartment}>
+                    {announcement.department}
+                  </Text>
                 </View>
-                <Text style={styles.cardTime}>{item.time}</Text>
+                <Text style={styles.announcementTime}>{announcement.time}</Text>
               </View>
-              <Text style={styles.cardBody}>{item.body}</Text>
+              <Text style={styles.announcementBody}>{announcement.body}</Text>
             </View>
           ))}
         </View>
 
-        {/* Quick Access */}
+        {/* Trending Topics */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="flash-outline" size={20} color="#1DA1F2" />
-            <Text style={styles.sectionTitle}>Quick Access</Text>
+            <Ionicons name="flame" size={20} color="#FAD202" />
+            <Text style={styles.sectionTitle}>Trending Now</Text>
           </View>
-          <View style={styles.grid}>
-            {quickFeatures.map((feature) => (
-              <TouchableOpacity key={feature.id} style={styles.gridItem}>
-                <View style={[styles.iconCircle, { backgroundColor: feature.color }]}>
-                  <Ionicons name={feature.icon} size={24} color="#fff" />
-                </View>
-                <Text style={styles.gridTitle}>{feature.title}</Text>
-                <Text style={styles.gridText}>{feature.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Trending */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="trending-up" size={20} color="#17BF63" />
-            <Text style={styles.sectionTitle}>Trending on Campus</Text>
-          </View>
-          {trendingTopics.map((trend, index) => (
-            <TouchableOpacity key={trend.id} style={styles.trendItem}>
-              <Text style={styles.trendRank}>#{index + 1}</Text>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.trendTopic}>{trend.topic}</Text>
-                <Text style={styles.trendPosts}>{trend.posts}</Text>
+          {trendingTopics.map((topic) => (
+            <View key={topic.id} style={styles.trendingItem}>
+              <View style={{
+                flexDirection: 'row',
+                gap: 10,
+              }}>
+                <Ionicons name='trending-up' size={24} color="#58a6ff"/>
+                <Text style={styles.trendingTag}>{topic.tag}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#AAB8C2" />
-            </TouchableOpacity>
+              <Text style={styles.trendingPosts}>{topic.posts} posts</Text>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -150,13 +181,57 @@ export default function DashboardTab() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
-  scrollView: { flex: 1 },
-  header: { padding: 20, paddingBottom: 10 },
-  headerTitle: { fontSize: 26, fontWeight: "700", color: "#14171A" },
-  headerSubtitle: { fontSize: 15, color: "#657786", marginTop: 2 },
-
-  section: { marginBottom: 24 },
+  container: {
+    flex: 1,
+    backgroundColor: "#0d1117",
+  },
+  welcomeHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 12,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#f0f6fc",
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: "#8b949e",
+    marginTop: 4,
+  },
+  facultyScroll: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  facultyBtn: {
+    backgroundColor: "#21262d",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  facultyText: {
+    color: "#c9d1d9",
+    fontSize: 13,
+  },
+  quickAccessContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  quickAccessItem: {
+    alignItems: "center",
+  },
+  quickAccessLabel: {
+    color: "#8b949e",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  section: {
+    marginBottom: 24,
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -164,88 +239,69 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
+    color: "#f0f6fc",
     marginLeft: 8,
-    color: "#14171A",
   },
-
-  card: {
-    backgroundColor: "#fff",
+  announcementCard: {
+    backgroundColor: "#161b22",
     marginHorizontal: 20,
     marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 10,
+    padding: 14,
+    borderColor: "#30363d",
     borderWidth: 1,
-    borderColor: "#E1E8ED",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
-  cardHeader: {
+  announcementHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 8,
   },
-  dot: {
+  priorityDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 10,
-    marginTop: 5,
+    marginTop: 4,
+    marginRight: 8,
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: "#14171A" },
-  cardMeta: { fontSize: 13, color: "#657786" },
-  cardTime: { fontSize: 12, color: "#AAB8C2" },
-  cardBody: { fontSize: 14, color: "#14171A", marginTop: 4, lineHeight: 20 },
-
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 20,
-    gap: 12,
+  announcementMeta: {
+    flex: 1,
   },
-  gridItem: {
-    width: (width - 52) / 2,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E1E8ED",
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  gridTitle: {
+  announcementTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#14171A",
-    marginBottom: 4,
-    textAlign: "center",
+    color: "#f0f6fc",
   },
-  gridText: {
+  announcementDepartment: {
     fontSize: 12,
-    color: "#657786",
-    textAlign: "center",
+    color: "#8b949e",
   },
-
-  trendItem: {
+  announcementTime: {
+    fontSize: 12,
+    color: "#8b949e",
+  },
+  announcementBody: {
+    fontSize: 13,
+    color: "#c9d1d9",
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  trendingItem: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
+    justifyContent: "space-between",
+    backgroundColor: "#161b22",
+    paddingVertical: 20,
     paddingHorizontal: 20,
-    borderBottomColor: "#F5F8FA",
+    borderBottomColor: "#30363d",
     borderBottomWidth: 1,
   },
-  trendRank: { fontSize: 16, color: "#AAB8C2", fontWeight: "700", width: 30 },
-  trendTopic: { fontSize: 16, fontWeight: "600", color: "#14171A" },
-  trendPosts: { fontSize: 13, color: "#657786" },
+  trendingTag: {
+    color: "#58a6ff",
+    fontSize: 14,
+  },
+  trendingPosts: {
+    color: "#8b949e",
+    fontSize: 12,
+  },
 });
