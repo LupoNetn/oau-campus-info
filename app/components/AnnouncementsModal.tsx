@@ -18,12 +18,13 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
+import usePosts from '../hooks/usePosts'
 
 const AnnouncementsModal = ({ visible, onRequestClose }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [media, setMedia] = useState(null);
-  const [loading, setLoading] = useState(false);
+   const {handlePost,loading} = usePosts()
 
   const scale = useRef(new Animated.Value(0.85)).current;
 
@@ -47,6 +48,7 @@ const AnnouncementsModal = ({ visible, onRequestClose }) => {
     onClose && onClose();
   };
 
+    // Functions to get imge from user device
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -81,47 +83,17 @@ const AnnouncementsModal = ({ visible, onRequestClose }) => {
       setMedia(result.assets[0].uri);
     }
   };
+  // End of imae Functions
 
   const removeMedia = () => setMedia(null);
 
-  const handlePost = async () => {
-    if (!title.trim() || !content.trim()) {
-      alert("Please add a title and some text.");
-      return;
-    }
+  // Function for creating posts
+ const handlePostCreation = async () => {
+  await handlePost({title,content,image: media})
+  resetForm();
+  oRequestClose && onRequestClose();
 
-    setLoading(true);
-    try {
-      // Get token from SecureStore
-      const token = await SecureStore.getItemAsync("access_token");
-      if (!token) {
-        throw new Error("No authentication token found.");
-      }
-
-      const response = await fetch("https://campus-info.onrender.com/v1/post/posts/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: title.trim(), content: content.trim(), image: media }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || "Failed to post");
-      }
-
-      resetForm();
-      onClose && onClose();
-    } catch (err) {
-      console.warn("Post error:", err);
-      alert("Could not post. Try again.");
-      console.log(err)
-    } finally {
-      setLoading(false);
-    }
-  };
+ }
 
   const CHAR_LIMIT = 2000;
   const remaining = CHAR_LIMIT - content.length;
@@ -203,7 +175,7 @@ const AnnouncementsModal = ({ visible, onRequestClose }) => {
                 <Text style={styles.secondaryText}>Clear</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handlePost} activeOpacity={0.9} disabled={loading || !title.trim() || !content.trim()}>
+              <TouchableOpacity onPress={handlePostCreation} activeOpacity={0.9} disabled={loading || !title.trim() || !content.trim()}>
                 <LinearGradient
                   colors={(!title.trim() || !content.trim()) ? ["#444759", "#36393f"] : ["#2da44e", "#238636"]}
                   start={[0, 0]}

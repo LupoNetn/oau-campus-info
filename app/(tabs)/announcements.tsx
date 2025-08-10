@@ -1,5 +1,5 @@
 // Announcements.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ScrollView,
@@ -8,204 +8,139 @@ import {
   View,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import useAuth from "../hooks/useAuth";
+import usePosts from "../hooks/usePosts";
 import AnnouncementsModal from "../components/AnnouncementsModal";
-import * as SecureStore from "expo-secure-store";
-
-const demoAnnouncements = [
-  {
-    id: 1,
-    title: "Class Resumes Monday",
-    body: "All 200 level students should resume lectures by 8 AM on Monday. No excuses will be tolerated.",
-    author: "Faculty Officer",
-    date: "2025-08-06",
-  },
-  {
-    id: 2,
-    title: "Mid-Semester Test",
-    body: "The mid-semester test for MTH 102 will hold on Thursday, August 10th, at ETF Hall A by 9:00 AM.",
-    author: "Department of Mathematics",
-    date: "2025-08-05",
-  },
-];
 
 const Announcements = () => {
   const { user, loading: authLoading } = useAuth();
+  const { fetching, posts, fetchPosts } = usePosts();
   const [visible, setVisible] = useState(false);
-  const [posts, setPosts] = useState([]);          // was null / named post before — must be array
-  const [fetching, setFetching] = useState(false);
 
-  // Fetch posts from API (GET)
-  const fetchPosts = async () => {
-    console.log("[Announcements] fetchPosts: start");
-    setFetching(true);
-    try {
-      const token = await SecureStore.getItemAsync("access_token"); // adjust key if different
-      console.log("[Announcements] token present:", !!token);
-
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      console.log("[Announcements] Fetching posts with headers:", Object.keys(headers));
-      const response = await fetch("https://campus-info.onrender.com/v1/post/posts/", {
-        method: "GET",
-        headers,
-      });
-
-      console.log("[Announcements] response.status:", response.status, "ok:", response.ok);
-
-      // Try parse JSON; some APIs return [] or { results: [] }
-      const data = await response.json().catch((err) => {
-        console.warn("[Announcements] JSON parse error:", err);
-        return null;
-      });
-
-      console.log("[Announcements] raw data:", data);
-
-      if (!response.ok) {
-        // If backend returned error object
-        const errText = typeof data === "object" ? JSON.stringify(data) : String(data);
-        throw new Error(`API error: ${response.status} - ${errText}`);
-      }
-
-      // If API wraps results e.g. { results: [...] }
-      const normalized = Array.isArray(data) ? data : data?.results ?? [];
-      console.log("[Announcements] normalized posts length:", normalized.length);
-
-      setPosts(normalized);
-    } catch (err) {
-      console.warn("[Announcements] fetchPosts error:", err);
-      // fallback to demo data so UI doesn't break (optional)
-      // setPosts(demoAnnouncements);
-    } finally {
-      setFetching(false);
-      console.log("[Announcements] fetchPosts: finished");
-    }
-  };
-
-  // run once on mount
+  // Initial load
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  // Refresh handler for pull-to-refresh
-  const onRefresh = async () => {
-    await fetchPosts();
-  };
+  // Pull-to-refresh
+  const onRefresh = useCallback(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
-  // header icon click
-  const renderHeaderIcon = () => {
-    if (user?.role === "broadcaster") {
-      return (
-        <TouchableOpacity
-          onPress={() => {
-            console.log("[Announcements] open modal");
-            setVisible(true);
-          }}
-        >
-          <Ionicons name="create-outline" size={25} color="#f0f6fc" />
-        </TouchableOpacity>
-      );
-    }
-    return (
-      <TouchableOpacity>
-        <Ionicons name="settings-outline" size={25} color="#f0f6fc" />
-      </TouchableOpacity>
-    );
-  };
+  // Open modal (only broadcasters can create posts)
+  const openModal = () => setVisible(true);
 
-  // modal close and refresh posts
+  // Close modal and refresh list
   const handleModalClose = () => {
-    console.log("[Announcements] modal closed - refreshing posts");
     setVisible(false);
     fetchPosts();
   };
 
+  // Header actions
+  const HeaderActions = () => (
+    <View style={styles.headerContainer}>
+      <Ionicons name="person-circle-outline" size={25} color="#f0f6fc" />
+      <Ionicons name="school" size={25} color="#f0f6fc" />
+      {user?.role === "broadcaster" ? (
+        <TouchableOpacity onPress={openModal}>
+          <Ionicons name="create-outline" size={25} color="#f0f6fc" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity>
+          <Ionicons name="settings-outline" size={25} color="#f0f6fc" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  // Announcement card
+ const AnnouncementCard = ({ post, index }) => {
+   const baseUrl = "https://res.cloudinary.com/your-cloud-name/";
+
+  const id = post.id ?? post.pk ?? index;
+  const title = post.title ?? post.heading ?? "";
+  const body = post.content ?? post.body ?? post.text ?? "";
+  //const img = post.image ? (post.image.startsWith("http") ? post.image : baseUrl + post.image) : null;
+  //console.log(img)
+  console.log(post)
+  const author = post.author?.username ?? post.author?.name ?? post.author ?? "Unknown";
+  const dateRaw = post.created_at ?? post.date ?? post.published_at ?? post.timestamp ?? null;
+  const dateString = dateRaw ? formatDate(dateRaw) : "";
+
+  return (
+    <View key={id} style={styles.announcementCard}>
+      <Ionicons name="person-circle" size={40} color="#f0f6fc" style={styles.avatar} />
+      <View style={styles.content}>
+        <View style={styles.metaRow}>
+          <Text style={styles.author}>{author}</Text>
+          <Text style={styles.dot}>•</Text>
+          <Text style={styles.date}>{dateString}</Text>
+        </View>
+
+        {title ? <Text style={[styles.body, styles.title]}>{title}</Text> : null}
+        <Text style={styles.body}>{body}</Text>
+
+        {/* {img ? (
+          <Image
+            source={{ uri: img }}
+            style={styles.postImage}
+            resizeMode="cover"
+          />
+        ) : null} */}
+
+        <ActionsRow />
+      </View>
+    </View>
+  );
+};
+
+
+  // Actions row
+  const ActionsRow = () => (
+    <View style={styles.actionsRow}>
+      <ActionButton icon="chatbubble-outline" label="Reply" />
+      <ActionButton icon="repeat-outline" label="Repost" />
+      <ActionButton icon="heart-outline" label="Like" />
+      <ActionButton icon="bookmark-outline" />
+    </View>
+  );
+
+  // Loader state
   if (authLoading || fetching) {
     return (
       <View style={styles.centered}>
+        <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading announcements…</Text>
-        <Text style={{ color: "#8b949e", marginTop: 8 }}>Check console for debug logs.</Text>
       </View>
     );
   }
 
-  console.log("[Announcements] render - posts length:", posts.length);
-
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <Ionicons name="person-circle-outline" size={25} color="#f0f6fc" />
-        <Ionicons name="school" size={25} color="#f0f6fc" />
-        {renderHeaderIcon()}
-      </View>
+      <HeaderActions />
 
-      {/* Announcements list with pull-to-refresh */}
       <ScrollView
-        refreshControl={<RefreshControl refreshing={fetching} onRefresh={onRefresh} tintColor="#58a6ff" />}
+        refreshControl={
+          <RefreshControl refreshing={fetching} onRefresh={onRefresh} tintColor="#58a6ff" />
+        }
       >
-        {posts && posts.length > 0 ? (
-          posts.map((p, i) => {
-            // defensive mapping in case API shape differs
-            const id = p.id ?? p.pk ?? i;
-            const title = p.title ?? p.heading ?? "";
-            const body = p.content ?? p.body ?? p.text ?? "";
-            const author = p.author?.username ?? p.author?.name ?? p.author ?? "Unknown";
-            const dateRaw = p.created_at ?? p.date ?? p.published_at ?? p.timestamp ?? null;
-            let dateString = "";
-            if (dateRaw) {
-              try {
-                dateString = new Date(dateRaw).toDateString();
-              } catch (e) {
-                dateString = String(dateRaw);
-              }
-            }
-
-            return (
-              <View key={id} style={styles.announcementCard}>
-                <Ionicons name="person-circle" size={40} color="#f0f6fc" style={styles.avatar} />
-                <View style={styles.content}>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.author}>{author}</Text>
-                    <Text style={styles.dot}>•</Text>
-                    <Text style={styles.date}>{dateString}</Text>
-                  </View>
-
-                  {/* show title if present, otherwise body */}
-                  {title ? <Text style={[styles.body, { fontWeight: "700", marginBottom: 6 }]}>{title}</Text> : null}
-                  <Text style={styles.body}>{body}</Text>
-
-                  {/* Interaction Buttons */}
-                  <View style={styles.actionsRow}>
-                    <ActionButton icon="chatbubble-outline" label="Reply" />
-                    <ActionButton icon="repeat-outline" label="Repost" />
-                    <ActionButton icon="heart-outline" label="Like" />
-                    <ActionButton icon="bookmark-outline" />
-                  </View>
-                </View>
-              </View>
-            );
-          })
+        {posts.length > 0 ? (
+          posts.map((post, i) => <AnnouncementCard key={i} post={post} index={i} />)
         ) : (
-          // no posts
           <View style={{ padding: 20 }}>
             <Text style={{ color: "#8b949e" }}>No announcements yet.</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* Modal (pass both props for compatibility) */}
-      <AnnouncementsModal
-        visible={visible}
-        onClose={handleModalClose}
-        onRequestClose={handleModalClose}
-      />
+      <AnnouncementsModal visible={visible} onClose={handleModalClose} onRequestClose={handleModalClose} />
     </View>
   );
 };
 
+// Helpers
 const ActionButton = ({ icon, label }) => (
   <TouchableOpacity style={styles.actionBtn}>
     <Ionicons name={icon} size={18} color="#8b949e" />
@@ -213,8 +148,15 @@ const ActionButton = ({ icon, label }) => (
   </TouchableOpacity>
 );
 
-export default Announcements;
+const formatDate = (dateRaw) => {
+  try {
+    return new Date(dateRaw).toDateString();
+  } catch {
+    return String(dateRaw);
+  }
+};
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#0d1117",
@@ -230,6 +172,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#fff",
     fontSize: 16,
+    marginTop: 10,
   },
   headerContainer: {
     flexDirection: "row",
@@ -274,6 +217,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 10,
   },
+  title: {
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  postImage: {
+  width: "100%",
+  height: 200,
+  borderRadius: 10,
+  marginTop: 8,
+},
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -289,3 +242,5 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
+
+export default Announcements;
