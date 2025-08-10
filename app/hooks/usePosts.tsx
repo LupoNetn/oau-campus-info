@@ -19,21 +19,36 @@ const usePosts = () => {
       const token = await SecureStore.getItemAsync("access_token");
       if (!token) throw new Error("No authentication token found.");
 
-      const payload = {
-        title: title.trim(),
-        content: content.trim(),
-        ...(media ? { image: media } : {})
-      };
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("content", content.trim());
 
-      console.log("📤 Sending payload:", payload);
+      if (media) {
+        // Extract filename from URI
+        const uriParts = media.split('/');
+        const fileName = uriParts[uriParts.length - 1];
+
+        // Infer mime type based on extension
+        const fileExt = fileName.split('.').pop().toLowerCase();
+        let mimeType = "image/jpeg"; // default
+
+        if (fileExt === "png") mimeType = "image/png";
+        else if (fileExt === "jpg" || fileExt === "jpeg") mimeType = "image/jpeg";
+
+        formData.append("image", {
+          uri: media,
+          name: fileName,
+          type: mimeType,
+        });
+      }
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          // DO NOT set Content-Type here, fetch will set it automatically with FormData boundary
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -41,9 +56,9 @@ const usePosts = () => {
         throw new Error(text || "Failed to post");
       }
 
-      const data = await response.json();
-      console.log("✅ Post successful:", data);
-      return data;
+      const postData = await response.json();
+      console.log("✅ Post successful:", postData);
+      return postData;
 
     } catch (err) {
       console.warn("Post error:", err);
@@ -75,11 +90,7 @@ const usePosts = () => {
       }
 
       const data = await response.json();
-      console.log("📥 Raw posts data:", data);
-
-      // Normalize API response
       const normalized = Array.isArray(data) ? data : data?.results ?? [];
-      console.log("📌 Normalized posts length:", normalized.length);
 
       setPosts(normalized);
       return normalized;

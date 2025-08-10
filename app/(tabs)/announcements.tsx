@@ -1,4 +1,3 @@
-// Announcements.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -9,95 +8,86 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import useAuth from "../hooks/useAuth";
 import usePosts from "../hooks/usePosts";
 import AnnouncementsModal from "../components/AnnouncementsModal";
+
+const CLOUDINARY_CLOUD_NAME = "dbpb7sjus";
+const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/`;
 
 const Announcements = () => {
   const { user, loading: authLoading } = useAuth();
   const { fetching, posts, fetchPosts } = usePosts();
   const [visible, setVisible] = useState(false);
 
-  // Initial load
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  // Pull-to-refresh
   const onRefresh = useCallback(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Open modal (only broadcasters can create posts)
   const openModal = () => setVisible(true);
 
-  // Close modal and refresh list
   const handleModalClose = () => {
     setVisible(false);
     fetchPosts();
   };
 
-  // Header actions
-  const HeaderActions = () => (
-    <View style={styles.headerContainer}>
-      <Ionicons name="person-circle-outline" size={25} color="#f0f6fc" />
-      <Ionicons name="school" size={25} color="#f0f6fc" />
-      {user?.role === "broadcaster" ? (
-        <TouchableOpacity onPress={openModal}>
-          <Ionicons name="create-outline" size={25} color="#f0f6fc" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity>
-          <Ionicons name="settings-outline" size={25} color="#f0f6fc" />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  // Compose correct image URI
+  const getImageUri = (image) => {
+    if (!image) return null;
 
-  // Announcement card
- const AnnouncementCard = ({ post, index }) => {
-   const baseUrl = "https://res.cloudinary.com/your-cloud-name/";
+    if (image.startsWith("http://") || image.startsWith("https://")) {
+      return image;
+    }
 
-  const id = post.id ?? post.pk ?? index;
-  const title = post.title ?? post.heading ?? "";
-  const body = post.content ?? post.body ?? post.text ?? "";
-  //const img = post.image ? (post.image.startsWith("http") ? post.image : baseUrl + post.image) : null;
-  //console.log(img)
-  console.log(post)
-  const author = post.author?.username ?? post.author?.name ?? post.author ?? "Unknown";
-  const dateRaw = post.created_at ?? post.date ?? post.published_at ?? post.timestamp ?? null;
-  const dateString = dateRaw ? formatDate(dateRaw) : "";
+    if (image.startsWith("image/upload/")) {
+      return CLOUDINARY_BASE_URL + image;
+    }
 
-  return (
-    <View key={id} style={styles.announcementCard}>
-      <Ionicons name="person-circle" size={40} color="#f0f6fc" style={styles.avatar} />
-      <View style={styles.content}>
-        <View style={styles.metaRow}>
-          <Text style={styles.author}>{author}</Text>
-          <Text style={styles.dot}>•</Text>
-          <Text style={styles.date}>{dateString}</Text>
+    return CLOUDINARY_BASE_URL + "image/upload/" + image;
+  };
+
+  const AnnouncementCard = ({ post, index }) => {
+    const id = post.id ?? post.pk ?? index;
+    const title = post.title ?? post.heading ?? "";
+    const body = post.content ?? post.body ?? post.text ?? "";
+    const img = getImageUri(post.image);
+    const author = post.author?.username ?? post.author?.name ?? post.author ?? "Unknown";
+    const dateRaw = post.created_at ?? post.date ?? post.published_at ?? post.timestamp ?? null;
+    const dateString = dateRaw ? formatDate(dateRaw) : "";
+
+    return (
+      <View key={id} style={styles.announcementCard}>
+        <Ionicons name="person-circle" size={40} color="#f0f6fc" style={styles.avatar} />
+        <View style={styles.content}>
+          <View style={styles.metaRow}>
+            <Text style={styles.author}>{author}</Text>
+            <Text style={styles.dot}>•</Text>
+            <Text style={styles.date}>{dateString}</Text>
+          </View>
+
+          {title ? <Text style={[styles.body, styles.title]}>{title}</Text> : null}
+          <Text style={styles.body}>{body}</Text>
+
+          {img ? (
+            <Image
+              source={{ uri: img }}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          ) : null}
+
+          <ActionsRow />
         </View>
-
-        {title ? <Text style={[styles.body, styles.title]}>{title}</Text> : null}
-        <Text style={styles.body}>{body}</Text>
-
-        {/* {img ? (
-          <Image
-            source={{ uri: img }}
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-        ) : null} */}
-
-        <ActionsRow />
       </View>
-    </View>
-  );
-};
+    );
+  };
 
-
-  // Actions row
   const ActionsRow = () => (
     <View style={styles.actionsRow}>
       <ActionButton icon="chatbubble-outline" label="Reply" />
@@ -107,7 +97,6 @@ const Announcements = () => {
     </View>
   );
 
-  // Loader state
   if (authLoading || fetching) {
     return (
       <View style={styles.centered}>
@@ -119,7 +108,7 @@ const Announcements = () => {
 
   return (
     <View style={styles.container}>
-      <HeaderActions />
+      <HeaderActions user={user} openModal={openModal} />
 
       <ScrollView
         refreshControl={
@@ -140,7 +129,22 @@ const Announcements = () => {
   );
 };
 
-// Helpers
+const HeaderActions = ({ user, openModal }) => (
+  <View style={styles.headerContainer}>
+    <Ionicons name="person-circle-outline" size={25} color="#f0f6fc" />
+    <Ionicons name="school" size={25} color="#f0f6fc" />
+    {user?.role === "broadcaster" ? (
+      <TouchableOpacity onPress={openModal}>
+        <Ionicons name="create-outline" size={25} color="#f0f6fc" />
+      </TouchableOpacity>
+    ) : (
+      <TouchableOpacity>
+        <Ionicons name="settings-outline" size={25} color="#f0f6fc" />
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
 const ActionButton = ({ icon, label }) => (
   <TouchableOpacity style={styles.actionBtn}>
     <Ionicons name={icon} size={18} color="#8b949e" />
@@ -156,7 +160,6 @@ const formatDate = (dateRaw) => {
   }
 };
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#0d1117",
@@ -222,11 +225,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   postImage: {
-  width: "100%",
-  height: 200,
-  borderRadius: 10,
-  marginTop: 8,
-},
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginTop: 8,
+  },
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",

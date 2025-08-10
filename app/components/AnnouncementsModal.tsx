@@ -89,7 +89,7 @@ const AnnouncementsModal = ({ visible, onRequestClose }) => {
 
   // Function for creating posts
  const handlePostCreation = async () => {
-  await handlePost({title,content,image: media})
+  await handlePost({title,content,media})
   resetForm();
   oRequestClose && onRequestClose();
 
