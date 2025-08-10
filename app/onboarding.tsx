@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import useAuth from "./hooks/useAuth";
 
 const { width } = Dimensions.get("window");
 
@@ -22,7 +24,8 @@ const onboardingData = [
     id: 1,
     title: "Welcome to Campus Info",
     subtitle: "Your one-stop destination for everything campus-related",
-    description: "Stay connected with your university community, events, and resources all in one place.",
+    description:
+      "Stay connected with your university community, events, and resources all in one place.",
     icon: "school-outline",
     color: ["#667eea", "#764ba2"],
   },
@@ -30,7 +33,8 @@ const onboardingData = [
     id: 2,
     title: "Discover Events",
     subtitle: "Never miss out on campus activities",
-    description: "Browse upcoming events, join clubs, and participate in university activities with ease.",
+    description:
+      "Browse upcoming events, join clubs, and participate in university activities with ease.",
     icon: "calendar-outline",
     color: ["#f093fb", "#f5576c"],
   },
@@ -38,7 +42,8 @@ const onboardingData = [
     id: 3,
     title: "Connect & Share",
     subtitle: "Build meaningful connections",
-    description: "Connect with fellow students, share experiences, and grow your network within the campus community.",
+    description:
+      "Connect with fellow students, share experiences, and grow your network within the campus community.",
     icon: "people-outline",
     color: ["#4facfe", "#00f2fe"],
   },
@@ -48,21 +53,37 @@ function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+  // const auth = useAuth();
+
+  // // ✅ destructure safely
+  // const user = auth?.user ?? null;
+  // const loading = auth?.loading ?? false;
+
+  const {user,loading} = useAuth()
+  console.log(user)
 
   const currentGradient = onboardingData[currentIndex].color;
   const backgroundColor = currentGradient[currentGradient.length - 1];
 
+  // Change Android system nav color
   useEffect(() => {
     if (Platform.OS === "android") {
       SystemUI.setBackgroundColorAsync(backgroundColor);
     }
   }, [currentIndex]);
 
+  // Redirect if logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("(tabs)/announcements");
+    }
+  }, [loading, user]);
+
   const handleScroll = (event: any) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / width);
     setCurrentIndex(index);
   };
-
+  
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
       scrollViewRef.current?.scrollTo({
@@ -78,15 +99,23 @@ function OnboardingScreen() {
     router.push("/auth");
   };
 
-  router.push('(tabs)/announcements')
+  // Show loading state until auth check finishes
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#667eea" />
+      </View>
+    );
+  }
+
+  // If already logged in, skip onboarding entirely
+  if (user) return null;
+
+  console.log(user)
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
-      />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <LinearGradient
         colors={currentGradient}
@@ -140,7 +169,11 @@ function OnboardingScreen() {
               {currentIndex === onboardingData.length - 1 ? "Get Started" : "Next"}
             </Text>
             <Ionicons
-              name={currentIndex === onboardingData.length - 1 ? "checkmark" : "arrow-forward"}
+              name={
+                currentIndex === onboardingData.length - 1
+                  ? "checkmark"
+                  : "arrow-forward"
+              }
               size={20}
               color="#FFFFFF"
               style={styles.buttonIcon}
@@ -161,8 +194,12 @@ export default function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  gradient: {
+  gradient: { flex: 1 },
+  loadingContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -179,9 +216,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     opacity: 0.8,
   },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   slide: {
     width,
     flex: 1,
@@ -189,13 +224,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 40,
   },
-  iconContainer: {
-    marginBottom: 40,
-    opacity: 0.9,
-  },
-  textContainer: {
-    alignItems: "center",
-  },
+  iconContainer: { marginBottom: 40, opacity: 0.9 },
+  textContainer: { alignItems: "center" },
   title: {
     fontSize: 32,
     fontWeight: "700",
@@ -220,9 +250,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     paddingHorizontal: 20,
   },
-  footer: {
-    paddingHorizontal: 20,
-  },
+  footer: { paddingHorizontal: 20 },
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -236,10 +264,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     opacity: 0.3,
   },
-  activeDot: {
-    opacity: 1,
-    width: 24,
-  },
+  activeDot: { opacity: 1, width: 24 },
   nextButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 25,
@@ -257,7 +282,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginRight: 8,
   },
-  buttonIcon: {
-    marginLeft: 4,
-  },
+  buttonIcon: { marginLeft: 4 },
 });

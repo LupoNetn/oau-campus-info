@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import useAuth from './hooks/useAuth'
 import {
   Alert,
   KeyboardAvoidingView,
@@ -142,17 +143,15 @@ const OtpVerificationForm = ({ email, otp, setOtp, handleOtpVerify, loading }) =
 // Main Component
 export default function Auth() {
   const [isSignIn, setIsSignIn] = useState(true);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const {handleAuth,loading,handleOtpVerify,isVerifyingOtp,setOtp,setIsVerifyingOtp,otp} = useAuth()
 
   const gradientColors = ["#0f0f0f", "#000"];
   const bottomColor = gradientColors[gradientColors.length - 1];
@@ -163,101 +162,13 @@ export default function Auth() {
   }
 }, []);
 
-  const handleAuth = async () => {
-    if (!email || !password || (!isSignIn && (!username || !confirmPassword))) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
+  const handleAuthentication = async () => {
+    await handleAuth({isSignIn, email,password,username,confirmPassword})
+  }
 
-    if (!isSignIn && password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const url = isSignIn
-        ? "https://campus-info.onrender.com/v1/user/login/"
-        : "https://campus-info.onrender.com/v1/user/register/";
-
-      const payload = isSignIn
-        ? { email, password }
-        : { email, username, password, confirm_password: confirmPassword };
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const contentType = response.headers.get("content-type");
-      const isJSON = contentType && contentType.includes("application/json");
-      const data = isJSON ? await response.json() : await response.text();
-
-      if (!response.ok) {
-        const errorMessage = typeof data === "string" ? data : data.message || JSON.stringify(data);
-        throw new Error(errorMessage);
-      }
-
-      if (isSignIn) {
-        Alert.alert("Success", "Signed in!", [
-          {
-            text: "OK",
-            onPress: () => router.replace("(tabs)/announcements"),
-          },
-        ]);
-      } else {
-        Alert.alert("Account Created", "An OTP has been sent to your email.");
-        setIsVerifyingOtp(true);
-      }
-    } catch (error) {
-      Alert.alert("Error", error.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
-      router.push('(tabs)/announcements')
-    }
-  };
-
-  const handleOtpVerify = async () => {
-    if (!otp) {
-      Alert.alert("Error", "Please enter the OTP.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("https://campus-info.onrender.com/v1/user/verify-otp/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || JSON.stringify(data));
-      }
-
-      Alert.alert("Success", "OTP Verified. You can now log in.", [
-        {
-          text: "OK",
-          onPress: () => {
-            setIsSignIn(true);
-            setIsVerifyingOtp(false);
-            setOtp("");
-            setPassword("");
-            setConfirmPassword("");
-          },
-        },
-      ]);
-    } catch (error) {
-      Alert.alert("OTP Verification Failed", error.message || "An error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleOtpVerification = async () => {
+    await handleOtpVerify(email)
+  }
 
   const toggleAuthMode = () => {
     setIsSignIn(!isSignIn);
@@ -294,12 +205,18 @@ export default function Auth() {
             <View style={styles.authCard}>
               {!isVerifyingOtp && (
                 <View style={styles.tabContainer}>
-                  <TouchableOpacity style={[styles.tab, isSignIn && styles.activeTab]} onPress={() => setIsSignIn(true)}>
+                  <TouchableOpacity style={[styles.tab, isSignIn && styles.activeTab]} onPress={() => {
+                    setIsSignIn(true)
+                    toggleAuthMode()
+                  }}>
                     <Text style={[styles.tabText, isSignIn && styles.activeTabText]}>Sign In</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.tab, !isSignIn && styles.activeTab]}
-                    onPress={() => setIsSignIn(false)}
+                    onPress={() => {
+                      setIsSignIn(false)
+                      toggleAuthMode()
+                    }}
                   >
                     <Text style={[styles.tabText, !isSignIn && styles.activeTabText]}>Sign Up</Text>
                   </TouchableOpacity>
@@ -311,7 +228,7 @@ export default function Auth() {
                   email={email}
                   otp={otp}
                   setOtp={setOtp}
-                  handleOtpVerify={handleOtpVerify}
+                  handleOtpVerify={handleOtpVerification}
                   loading={loading}
                 />
               ) : isSignIn ? (
@@ -322,7 +239,7 @@ export default function Auth() {
                   setPassword={setPassword}
                   showPassword={showPassword}
                   setShowPassword={setShowPassword}
-                  handleAuth={handleAuth}
+                  handleAuth={handleAuthentication}
                   loading={loading}
                 />
               ) : (
@@ -339,7 +256,7 @@ export default function Auth() {
                   setShowPassword={setShowPassword}
                   showConfirmPassword={showConfirmPassword}
                   setShowConfirmPassword={setShowConfirmPassword}
-                  handleAuth={handleAuth}
+                  handleAuth={handleAuthentication}
                   loading={loading}
                 />
               )}
@@ -414,7 +331,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F8F9FA",
-    borderRadius: 10,
+    borderRadius: 30,
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -422,7 +339,7 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 10 },
   input: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 15,
     fontSize: 16,
     color: "#333",
   },
