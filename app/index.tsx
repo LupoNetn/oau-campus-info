@@ -3,12 +3,20 @@ import { Text, View, StyleSheet, Dimensions } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import * as Secure store from "expo-secure-store"
 
 const { width, height } = Dimensions.get("window");
 
 export default function Index() {
   useEffect(() => {
     // Simulate app initialization and check auth status
+   const token = Secure .           store.getItemAsync(TOKEN_KEY)
+
+if (token) {
+  const timer = setTimeout(() => {
+   router.replace("/(tabs)/announcements")
+})
+}
     const timer = setTimeout(() => {
       // For demo purposes, always go to onboarding
       // In real app, check AsyncStorage for auth token
