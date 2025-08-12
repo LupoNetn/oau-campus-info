@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import { useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
@@ -8,7 +9,7 @@ const usePosts = () => {
 
   const handlePost = async ({ title, content, media }) => {
     if (!title.trim() || !content.trim()) {
-      alert("Please add a title and some text.");
+      Alert.alert("Please add a title and some text.");
       return;
     }
 
