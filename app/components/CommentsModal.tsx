@@ -9,33 +9,34 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import usePosts, { Comment } from "../hooks/usePosts";
 
-interface CommentsModalProps {
+interface Props {
   visible: boolean;
   onClose: () => void;
   postId: number;
 }
 
-const CommentsModal: React.FC<CommentsModalProps> = ({ visible, onClose, postId }) => {
-  const [comment, setComment] = useState("");
+const CommentsModal: React.FC<Props> = ({ visible, onClose, postId }) => {
+  const [text, setText] = useState("");
   const insets = useSafeAreaInsets();
-  const { fetchComments, handleComment, comments } = usePosts();
+  const { fetchComments, handleComment, comments, postingComment } = usePosts();
 
   useEffect(() => {
-    if (postId && visible) {
-      fetchComments(postId);
-    }
+    if (postId && visible) fetchComments(postId);
   }, [postId, visible]);
 
-  const handleSend = async () => {
-    if (!comment.trim()) return;
-    await handleComment(postId, comment);
-    setComment("");
+  const send = async () => {
+    if (!text.trim()) return;
+    await handleComment(postId, text);
+    setText(""); // clear input
   };
+
+  const postComments = comments[postId] || [];
 
   return (
     <Modal
@@ -46,43 +47,49 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ visible, onClose, postId 
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom : 0}
       >
         <View style={[styles.container, { paddingTop: Platform.OS === "ios" ? insets.top + 10 : 30 }]}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-              <Ionicons name="arrow-back" color="white" size={30} />
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="arrow-back" color="white" size={28} />
             </TouchableOpacity>
             <Text style={styles.title}>Comments</Text>
-            <View style={{ width: 30 }} />
+            <View style={{ width: 28 }} />
           </View>
 
-          {/* Comments List */}
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {(comments[postId] || []).map((c: Comment) => (
-              <View key={c.id} style={styles.commentCard}>
-                <Text style={styles.commentAuthor}>
-                  {c.author?.username ?? "Anonymous"}
-                </Text>
-                <Text style={styles.commentText}>{c.content}</Text>
-              </View>
-            ))}
+          {/* Comments */}
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            {postComments.length === 0 ? (
+              <Text style={styles.empty}>No comments yet</Text>
+            ) : (
+              postComments.map((c: Comment) => (
+                <View key={c.id} style={styles.commentCard}>
+                  <Text style={styles.author}>{c.author?.username ?? "Anonymous"}</Text>
+                  <Text style={styles.content}>{c.content}</Text>
+                </View>
+              ))
+            )}
           </ScrollView>
 
           {/* Input */}
-          <View style={[styles.inputWrapper, { marginBottom: Platform.OS === "ios" ? insets.bottom + 15 : 15 }]}>
+          <View style={[styles.inputBar, { marginBottom: Platform.OS === "ios" ? insets.bottom + 15 : 15 }]}>
             <TextInput
-              style={styles.textInput}
+              style={styles.input}
               placeholder="Write a comment..."
-              placeholderTextColor="#aaa"
-              value={comment}
-              onChangeText={setComment}
+              placeholderTextColor="#888"
+              value={text}
+              onChangeText={setText}
               multiline
             />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons name="send" size={22} color="#fff" />
+            <TouchableOpacity onPress={send} disabled={postingComment} style={styles.send}>
+              {postingComment ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="send" size={22} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -96,13 +103,19 @@ export default CommentsModal;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0d1117", paddingHorizontal: 15 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  headerButton: { padding: 4 },
-  title: { color: "#ffffff", fontSize: 18, textAlign: "center", flex: 1, fontWeight: "600" },
-  scrollContent: { flexGrow: 1 },
+  title: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  empty: { color: "#aaa", fontStyle: "italic", textAlign: "center", marginTop: 20 },
   commentCard: { backgroundColor: "#161b22", padding: 10, borderRadius: 8, marginBottom: 10 },
-  commentAuthor: { color: "#58a6ff", fontWeight: "600" },
-  commentText: { color: "#c9d1d9", marginTop: 4 },
-  inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: "#161b22", borderRadius: 25, paddingHorizontal: 15, paddingVertical: 8 },
-  textInput: { flex: 1, color: "white", fontSize: 16, maxHeight: 100 },
-  sendButton: { marginLeft: 10, backgroundColor: "#0d1117", padding: 8, borderRadius: 20 },
+  author: { color: "#58a6ff", fontWeight: "600" },
+  content: { color: "#c9d1d9", marginTop: 4 },
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#161b22",
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  input: { flex: 1, color: "white", fontSize: 15, maxHeight: 100 },
+  send: { marginLeft: 10, backgroundColor: "#238636", padding: 10, borderRadius: 20 },
 });
