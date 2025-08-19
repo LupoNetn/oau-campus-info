@@ -86,7 +86,7 @@ const usePosts = () => {
   // ---------------- Fetch comments for a post ----------------
   const fetchComments = async (postId: number): Promise<Comment[] | void> => {
     try {
-      const url = `https://campus-info.onrender.com/v1/post/comments/`; // ✅ fixed endpoint
+      const url = `https://campus-info.onrender.com/v1/post/comments/`; 
       const token = await SecureStore.getItemAsync("access_token");
       if (!token) throw new Error("No authentication token found.");
 
@@ -98,7 +98,7 @@ const usePosts = () => {
       if (!response.ok) throw new Error(await response.text());
       const allComments: Comment[] = await response.json();
 
-      // ✅ filter comments by postId
+      // filter comments by postId
       const filtered = allComments.filter((c) => c.post === postId);
 
       setComments((prev) => ({ ...prev, [postId]: filtered }));
