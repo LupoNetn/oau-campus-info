@@ -4,8 +4,11 @@ import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   useEffect(() => {
     if (Platform.OS === "android") {
       // Set Android system navigation and status bar color
@@ -16,7 +19,11 @@ export default function TabLayout() {
   return (
     <>
       {/* Status bar (top system bar) */}
-      <StatusBar style="light" backgroundColor="#0d1117" translucent={false} />
+      <StatusBar 
+        style="light" 
+        backgroundColor="#0d1117" 
+        translucent={Platform.OS === 'ios'}
+      />
 
       <Tabs
         screenOptions={{
@@ -31,18 +38,23 @@ export default function TabLayout() {
           tabBarStyle: {
             backgroundColor: "#0d1117",
             borderTopColor: "#161b22",
-            height: Platform.OS === "ios" ? 80 : 65,
-            paddingBottom: Platform.OS === "ios" ? 25 : 10,
+            height: Platform.OS === "ios" ? 80 + insets.bottom : 65,
+            paddingBottom: Platform.OS === "ios" ? 25 + insets.bottom : 10,
             paddingTop: 5,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.05,
-            shadowRadius: 4,
-            elevation: 5,
+            shadowOpacity: Platform.OS === "ios" ? 0.1 : 0.05,
+            shadowRadius: Platform.OS === "ios" ? 8 : 4,
+            elevation: Platform.OS === "ios" ? 0 : 5,
+            borderTopWidth: Platform.OS === "ios" ? 0.5 : 0,
           },
 
           // No tab labels (clean look)
           tabBarShowLabel: false,
+
+          // iOS-specific gesture handling
+          gestureEnabled: Platform.OS === "ios",
+          gestureDirection: "horizontal",
 
           // Optional header styles (if headerShown: true later)
           headerStyle: {
@@ -61,7 +73,7 @@ export default function TabLayout() {
           },
 
           tabBarIconStyle: {
-            marginBottom: -2,
+            marginBottom: Platform.OS === "ios" ? -4 : -2,
           },
         }}
       >

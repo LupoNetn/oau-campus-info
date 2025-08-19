@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TextStyle, TouchableOpacity, ViewStyle } from "react-native";
+import { StyleSheet, Text, TextStyle, TouchableOpacity, ViewStyle, Platform } from "react-native";
 
 interface ButtonProps {
   title: string;
@@ -52,6 +52,7 @@ export default function Button({
             onPress={onPress}
             disabled={disabled}
             style={styles.touchable}
+            activeOpacity={Platform.OS === 'ios' ? 0.8 : 0.9}
           >
             {icon && <>{icon}</>}
             <Text style={textStyleArray}>{title}</Text>
@@ -65,6 +66,7 @@ export default function Button({
         style={buttonStyle}
         onPress={onPress}
         disabled={disabled}
+        activeOpacity={Platform.OS === 'ios' ? 0.8 : 0.9}
       >
         {icon && <>{icon}</>}
         <Text style={textStyleArray}>{title}</Text>
@@ -81,6 +83,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   touchable: {
     flex: 1,

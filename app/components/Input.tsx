@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
     ViewStyle,
+    Platform,
 } from "react-native";
 
 interface InputProps {
@@ -73,11 +74,15 @@ export default function Input({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           editable={!disabled}
+          autoCorrect={false}
+          spellCheck={false}
+          textContentType={Platform.OS === 'ios' ? 'none' : undefined}
         />
         {secureTextEntry && (
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
             style={styles.eyeButton}
+            activeOpacity={Platform.OS === 'ios' ? 0.7 : 0.8}
           >
             <Ionicons
               name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -105,6 +110,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E9ECEF",
     minHeight: 56,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   inputContainerError: {
     borderColor: "#FF6B6B",
@@ -122,6 +138,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     paddingVertical: 16,
+    ...Platform.select({
+      ios: {
+        paddingTop: 16,
+        paddingBottom: 16,
+      },
+      android: {
+        paddingVertical: 16,
+      },
+    }),
   },
   inputDisabled: {
     color: "#999",
