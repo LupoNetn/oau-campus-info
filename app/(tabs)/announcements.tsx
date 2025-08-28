@@ -33,6 +33,8 @@ interface PostType {
   date?: string;
   published_at?: string;
   timestamp?: string;
+  likes_count?: number;
+  liked?: boolean;
 }
 
 const formatDate = (dateRaw: string): string => {
@@ -67,9 +69,15 @@ interface AnnouncementCardProps {
   post: PostType;
   index: number;
   onOpenComments: (postId: string | number) => void;
+  onLike: (postId: number) => void;
 }
 
-const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ post, index, onOpenComments }) => {
+const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
+  post,
+  index,
+  onOpenComments,
+  onLike,
+}) => {
   const id = post.id ?? post.pk ?? index;
   const title = post.title ?? post.heading ?? "";
   const body = post.content ?? post.body ?? post.text ?? "";
@@ -101,7 +109,14 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ post, index, onOpen
 
         <View style={styles.actionsRow}>
           <ActionButton icon="chatbubble-outline" label="Reply" onPress={() => onOpenComments(id)} />
-          <ActionButton icon="heart-outline" label="Like" />
+          <TouchableOpacity style={styles.actionBtn} onPress={() => onLike(Number(id))}>
+            <Ionicons
+              name={post.liked ? "heart" : "heart-outline"}
+              size={18}
+              color={post.liked ? "red" : "#8b949e"}
+            />
+            <Text style={styles.actionText}>{post.likes_count ?? 0}</Text>
+          </TouchableOpacity>
           <ActionButton icon="bookmark-outline" />
         </View>
       </View>
@@ -111,26 +126,29 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ post, index, onOpen
 
 const Announcements: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { fetching, posts, fetchPosts } = usePosts();
+  const { fetching, posts, fetchPosts, fetchLikes, handleLike } = usePosts();
   const [visible, setVisible] = useState<boolean>(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState<boolean>(false);
   const [selectedPostId, setSelectedPostId] = useState<string | number | null>(null);
-  
-  
 
   useEffect(() => {
-    fetchPosts();
+    (async () => {
+      await fetchPosts();
+      await fetchLikes();
+    })();
   }, []);
 
   const onRefresh = useCallback(() => {
     fetchPosts();
-  }, [fetchPosts]);
+    fetchLikes();
+  }, [fetchPosts, fetchLikes]);
 
   const openModal = () => setVisible(true);
 
   const handleModalClose = () => {
     setVisible(false);
     fetchPosts();
+    fetchLikes();
   };
 
   const handleCommentsModalClose = () => {
@@ -155,7 +173,7 @@ const Announcements: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-     <Header openModal={openModal}/>
+      <Header openModal={openModal} />
 
       {/* Posts */}
       <ScrollView
@@ -165,7 +183,13 @@ const Announcements: React.FC = () => {
       >
         {posts.length > 0 ? (
           posts.map((post, i) => (
-            <AnnouncementCard key={String(i)} post={post} index={i} onOpenComments={handleOpenComments} />
+            <AnnouncementCard
+              key={String(i)}
+              post={post}
+              index={i}
+              onOpenComments={handleOpenComments}
+              onLike={handleLike}
+            />
           ))
         ) : (
           <View style={{ padding: 20 }}>
@@ -177,7 +201,6 @@ const Announcements: React.FC = () => {
       {/* Create Announcement */}
       <AnnouncementsModal
         visible={visible}
-        //onClose={handleModalClose}
         onRequestClose={handleModalClose}
       />
 
@@ -195,12 +218,6 @@ const styles = StyleSheet.create({
   container: { backgroundColor: "#0d1117", flex: 1, paddingTop: 40 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0d1117" },
   loadingText: { color: "#fff", fontSize: 16, marginTop: 10 },
-  headerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
   announcementCard: {
     flexDirection: "row",
     paddingVertical: 14,

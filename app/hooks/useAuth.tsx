@@ -1,70 +1,67 @@
 import { Alert } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
-const TOKEN_KEY = "access_token";
+import { getToken, saveToken, removeToken } from "../utils/storage";
+
+interface AuthPayload {
+  isSignIn: boolean;
+  email: string;
+  password: string;
+  username?: string;
+  confirmPassword?: string;
+}
 
 const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [user, setUser] = useState(null); // Decoded user data
+  const [user, setUser] = useState<any>(null);
   const [isBroadcaster, setIsBroadcaster] = useState(false);
   const router = useRouter();
 
   // Decode JWT and validate expiry
-  const decodeToken = useCallback((token) => {
+  const decodeToken = useCallback((token: string) => {
     try {
-      const decoded = jwtDecode(token);
-      // Check if token is expired
-      const currentTime = Date.now() / 1000; // Current time in seconds
+      const decoded: any = jwtDecode(token);
+      const currentTime = Date.now() / 1000; // seconds
       if (decoded.exp && decoded.exp < currentTime) {
         console.warn("Token expired");
         return null;
       }
       return decoded;
-    } catch (error) {
-      console.error("Invalid token:", error);
+    } catch (err) {
+      console.error("Invalid token:", err);
       return null;
     }
   }, []);
 
-  // Load user from stored token on app start
+  // Restore session on app start
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        const token = await getToken();
         if (token) {
           const decoded = decodeToken(token);
           if (decoded) {
             setUser(decoded);
             setIsBroadcaster(decoded?.role === "broadcaster");
           } else {
-            // Clear invalid or expired token
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            await removeToken();
             setUser(null);
             setIsBroadcaster(false);
           }
         }
-      } catch (error) {
-        console.error("Failed to restore session:", error);
+      } catch (err) {
+        console.error("Failed to restore session:", err);
         Alert.alert("Error", "Failed to restore session. Please sign in again.");
       }
     };
-
     restoreSession();
   }, [decodeToken]);
 
-  // Handle sign-in or signup
-  const handleAuth = async ({
-    isSignIn,
-    email,
-    password,
-    username,
-    confirmPassword,
-  }) => {
-    // Input validation
+  // Handle sign-in / signup
+  const handleAuth = async ({ isSignIn, email, password, username, confirmPassword }: AuthPayload) => {
     if (!email || !password || (!isSignIn && (!username || !confirmPassword))) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
@@ -76,7 +73,6 @@ const useAuth = () => {
     }
 
     setLoading(true);
-
     try {
       const url = isSignIn
         ? "https://campus-info.onrender.com/v1/user/login/"
@@ -92,31 +88,19 @@ const useAuth = () => {
         body: JSON.stringify(payload),
       });
 
-      const isJson = response.headers
-        .get("content-type")
-        ?.includes("application/json");
+      const isJson = response.headers.get("content-type")?.includes("application/json");
       const data = isJson ? await response.json() : await response.text();
-      console.log(data)
 
-      if (!response.ok) {
-        throw new Error(
-          typeof data === "string"
-            ? data
-            : data.message || "An error occurred"
-        );
-      }
+      if (!response.ok) throw new Error(typeof data === "string" ? data : data.message || "An error occurred");
 
       if (isSignIn) {
-        // Handle sign-in: store token and set user
         const token = data.access;
-        if (!token) {
-          throw new Error("No token received from server");
-        }
-        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        if (!token) throw new Error("No token received from server");
+
+        await saveToken(token);
         const decoded = decodeToken(token);
         if (decoded) {
           setUser(decoded);
-          console.log(user)
           setIsBroadcaster(decoded?.role === "broadcaster");
           Alert.alert("Success", "Signed in successfully!");
           router.replace("(tabs)/announcements");
@@ -124,46 +108,37 @@ const useAuth = () => {
           throw new Error("Invalid or expired token received");
         }
       } else {
-        // Handle signup: trigger OTP verification
         Alert.alert("Account Created", "An OTP has been sent to your email.");
         setIsVerifyingOtp(true);
       }
-    } catch (error) {
-      Alert.alert("Error", error.message || "Something went wrong.");
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
   // Handle OTP verification
-  const handleOtpVerify = async (email) => {
+  const handleOtpVerify = async (email: string) => {
     if (!otp) {
       Alert.alert("Error", "Please enter the OTP.");
       return;
     }
 
     setLoading(true);
-
     try {
-      const response = await fetch(
-        "https://campus-info.onrender.com/v1/user/verify-otp/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp }),
-        }
-      );
+      const response = await fetch("https://campus-info.onrender.com/v1/user/verify-otp/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "OTP verification failed");
 
-      if (!response.ok) {
-        throw new Error(data.message || "OTP verification failed");
-      }
-
-      // Assuming backend returns a token after OTP verification
       const token = data.token;
       if (token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        await saveToken(token);
         const decoded = decodeToken(token);
         if (decoded) {
           setUser(decoded);
@@ -193,25 +168,25 @@ const useAuth = () => {
           },
         ]);
       }
-    } catch (error) {
-      Alert.alert("Error", error.message || "OTP verification failed.");
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "OTP verification failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle logout
+  // Logout
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await removeToken();
       setUser(null);
       setIsBroadcaster(false);
       setIsVerifyingOtp(false);
       setOtp("");
       router.replace("/auth");
       Alert.alert("Success", "Logged out successfully.");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch (err) {
+      console.error("Logout error:", err);
       Alert.alert("Error", "Failed to log out. Please try again.");
     }
   };

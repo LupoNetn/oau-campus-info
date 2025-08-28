@@ -11,7 +11,7 @@ export default function Index() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = await SecureStore.getItemAsync(TOKEN_KEY); // TOKEN_KEY from your signup logic
+        const token = await SecureStore.getItemAsync('access_token'); // TOKEN_KEY from your signup logic
 
         // Wait 2 seconds so splash screen is visible
         setTimeout(() => {
